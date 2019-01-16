@@ -1,0 +1,77 @@
+1.) List of commands for MDA_MB_231 cell line sample.
+
+prefetch SRR1021654
+fastq-dump --split-3 SRR1021654.sra
+
+gzip SRR925755_1.fastq
+gzip SRR925755_2.fastq
+
+java -jar trimmomatic-0.36.jar PE -phred33 -threads 16 SRR925755_1.fastq.gz SRR925755_2.fastq.gz paired_trimmed_SRR925755_1.fastq paired_trimmed_SRR925755_2.fastq unpaired_trimmed_SRR925755_1.fastq 
+unpaired_trimmed_SRR925755_2.fastq ILLUMINACLIP:all_adapters.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:30 MINLEN:36 HEADCROP:10 TAILCROP:20
+
+bowtie2 -x hg38 -1 SRR1021654_1.fastq -2 SRR1021654_2.fastq -S MDA_MB_231.sam --no-unal
+
+samtools view -Sb MDA_MB_231.sam > MD2.bam
+samtools sort MD2.bam MD2_sorted.bam
+samtools index MD2_sorted.bam
+
+samtools depth -r chrM:3307-4262 sorted_bt459.bam.bam > bt459_ND1.txt
+samtools depth -r chrM:14149-14673 sorted_bt459.bam.bam > bt459_ND6.txt
+samtools depth -r chr17:42810132-42824316 sorted_bt459.bam.bam > bt459_BECN1.txt
+samtools depth -r chr2:151485334-151734487s sorted_bt459.bam.bam > bt459_NEB.txt
+samtools depth -r chr21 sorted_bt459.bam.bam > bt459_chr21.txt
+samtools depth -r chrM sorted_bt459.bam.bam > bt459_chrM.txt
+
+bedtools intersect -abam sorted_bt459.bam.bam -b chr21_transcripts_gencode28_hg38.bed -v > exon_21_Bt459.bam
+
+samtools sort exon_21_Bt459.bam
+samtools index exon_21_Bt459.bam
+samtools depth -r chr21 exon_21_Bt459.bam > EXON_21_bt459.bam
+samtools idxstats sorted_bt459.bam.bam > BT459_ALIGNMENT_STATS.txt
+
+
+2.) Python script for computing mean coverage from a text file.
+
+import numpy as np  # useful for many scientific computations in Python
+import pandas as pd # primary data structure library
+path = '/mnt/remya/SEQUENCES/bt459_ND1.txt' # path to the file
+df = pd.read_csv(path, delimiter="\t")
+df.columns = ["Chr Name", "Position", "Coverage"]
+mean_coverage = df["Coverage"].mean()  # gets the mean coverage (in this case for ND1)
+median_coverage = df["Coverage"].median()  # gets the median coverage 
+print(mean_coverage)
+print(median_coverage)
+
+3.) Python script for getting correlations and plots
+
+import numpy as np  
+import pandas as pd
+path = '/mnt/remya/SEQUENCES/sra/sra/Master.csv'
+df = pd.read_csv(path, delimiter=",")
+print(df)
+print(df['Equation 1'].corr(df['qPCR']))
+print(df['Equation 2'].corr(df['qPCR']))
+print(df['Equation 3'].corr(df['qPCR']))
+print(df['Equation 4'].corr(df['qPCR']))
+print(df['Equation 5'].corr(df['qPCR']))
+print(df['Equation 6'].corr(df['qPCR']))
+######################################################################
+# sample data
+x = df['Equation 2']
+y = df['qPCR']
+m, b = np.polyfit(x, y, 1)
+plt.plot(x, y, '.')
+plt.plot(x, m*x + b, '-')
+plt.show()
+######################################################################
+x = df['Equation 3']
+y = df['qPCR']
+m, b = np.polyfit(x, y, 1)
+plt.plot(x, y, '.')
+plt.plot(x, m*x + b, '-')
+plt.show()
+
+4.) MtDNA-CNV Compendium
+
+https://goo.gl/vEBKbT
+
